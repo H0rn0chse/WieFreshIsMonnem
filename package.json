@@ -1,0 +1,29 @@
+{
+  "name": "wiefreshismonnem",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/H0rn0chse/WieFreshIsMonnem.git"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": {
+    "name": "H0rn0chse",
+    "email": "h0rn0chse@gmx.de"
+  },
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/H0rn0chse/WieFreshIsMonnem/issues"
+  },
+  "homepage": "https://github.com/H0rn0chse/WieFreshIsMonnem#readme",
+  "dependencies": {
+    "discord.js": "^12.5.3",
+    "dotenv": "^9.0.2",
+    "node-fetch": "^2.6.1"
+  }
+}
