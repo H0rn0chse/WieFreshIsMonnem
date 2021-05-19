@@ -1,3 +1,4 @@
+import { DataManger } from "../DataManager.js";
 import { DiscordManager } from "../DiscordManager.js";
 
 export async function addStat (discordMessage) {
@@ -10,6 +11,8 @@ export async function addStat (discordMessage) {
         this.config.statChannels.push(channelId);
     }
     await this.saveConfig();
+    const msg = await DataManger.sendUpdate(true);
+    DiscordManager.send(channelId, msg);
 }
 
 export async function removeStat (discordMessage) {

@@ -1,7 +1,7 @@
 import * as path from "path";
 import * as fs from "fs";
 import fetch from "node-fetch";
-import { ARROWS, DAYS, dirname, JSON_DATA_KEY, REFRESH_TIMEOUT, THRESHOLD_DAYS, THRESHOLD_VALUE, TREND_DAYS } from "../globals.js";
+import { ARROWS, DAYS, dirname, JSON_DATA_KEY, REFRESH_TIMEOUT, THRESHOLD_DAYS, THRESHOLD_VALUE, TREND_DAYS, THRESHOLD_DAY_OFFSET } from "../globals.js";
 import { CommandManager } from "./CommandManager.js";
 import { Debug } from "./Debug.js";
 
@@ -100,7 +100,7 @@ class _DataManger {
         return this.sendUpdate();
     }
 
-    async sendUpdate() {
+    async sendUpdate(returnMessage = false) {
         const lastUpdate = this.cache.lastUpdate;
         let count = 0;
         for (let i = THRESHOLD_DAYS; i >= 0; i--) {
@@ -112,6 +112,8 @@ class _DataManger {
             const value = parseFloat(entry?.data?.value || "0");
             if (value < THRESHOLD_VALUE && value > 0) {
                 count += 1;
+            } else if (value === 0) {
+                count = THRESHOLD_DAY_OFFSET;
             } else {
                 count = 0;
             }
@@ -148,6 +150,11 @@ class _DataManger {
             "**Trend**",
             trend,
         ];
+
+
+        if (returnMessage) {
+            return msg.join("\n");
+        }
 
         return CommandManager.invokeCommand("sendStats", msg.join("\n"));
     }
