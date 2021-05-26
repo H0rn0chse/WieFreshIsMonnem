@@ -4,6 +4,7 @@ import fetch from "node-fetch";
 import { ARROWS, DAYS, dirname, JSON_DATA_KEY, REFRESH_TIMEOUT, THRESHOLD_DAYS, THRESHOLD_VALUE, TREND_DAYS, THRESHOLD_DAY_OFFSET } from "../globals.js";
 import { CommandManager } from "./CommandManager.js";
 import { Debug } from "./Debug.js";
+import { DataResolver } from "discord.js";
 
 const cacheFile = path.join(dirname, "cache.json");
 const COMPONENT = "DataManger";
@@ -16,7 +17,7 @@ class _DataManger {
         if (!fs.existsSync(cacheFile)) {
             this.cache = {
                 data: {},
-                lastUpdate: 0,
+                lastUpdate: "0",
             };
             return;
         }
@@ -100,52 +101,81 @@ class _DataManger {
         return this.sendUpdate();
     }
 
-    async sendUpdate(returnMessage = false) {
-        const lastUpdate = this.cache.lastUpdate;
-        let count = 0;
-        for (let i = THRESHOLD_DAYS; i >= 0; i--) {
-            const date = new Date(lastUpdate);
-            this.setDaysBefore(date, i);
-            const key = this.getKey(date);
+    getEntryKeys () {
+        return Object.keys(this.cache.data)
+            .map((key) => {
+                const keyParts = key.split("_");
+                return new Date(keyParts[2], keyParts[1] - 1, keyParts[0]);
+            }).sort((a, b) => {
+                return a.getTime() - b.getTime();
+            });
+    }
 
+    async sendUpdate(returnMessage = false) {
+        let count = THRESHOLD_DAY_OFFSET;
+        let workdays = count;
+        let negativeCount = 0;
+
+        this.getEntryKeys().forEach((date) => {
+            const key = this.getKey(date);
             const entry = this.cache.data[key] || {};
             const value = parseFloat(entry?.data?.value || "0");
+            const day = date.getDay();
+            const isWorkday = day !== 0 && day !== 6;
+
             if (value < THRESHOLD_VALUE && value > 0) {
                 count += 1;
-            } else if (value === 0) {
-                count = THRESHOLD_DAY_OFFSET;
+                if (isWorkday) {
+                    workdays += 1;
+                }
+                negativeCount = 0;
             } else {
-                count = 0;
+                count = 0
+                workdays = 0;
+                negativeCount += 1;
             }
+        });
+
+        let freshMessage = "";
+        if (workdays >= THRESHOLD_DAYS) {
+            freshMessage = `Mannheim is schon ${workdays} Werktage fresh!`;
+        } else if (workdays > 0) {
+            freshMessage = `Mannheim wird bald wieder fresh: ${workdays} von ${THRESHOLD_DAYS} Werktage`;
+        } else {
+            freshMessage = `Mannheim is seit ${negativeCount} Tagen ned fresh :(`;
         }
 
         let lastDay = 0;
         const values = [];
-        for (let i = TREND_DAYS - 1; i >= 0; i--) {
-            const date = new Date(lastUpdate);
-            this.setDaysBefore(date, i);
+        this.getEntryKeys()
+            .reduceRight((dates, date) => {
+                if (dates.length < TREND_DAYS) {
+                    dates.push(date)
+                }
+                return dates;
+            }, [])
+            .reverse()
+            .forEach((date) => {
+                const key = this.getKey(date);
+                const entry = this.cache.data[key] || {};
+                const value = parseFloat(entry?.data?.value || "0");
 
+                let trend = "";
+                if (value > lastDay) {
+                    trend = ARROWS.up
+                } else if (value < lastDay) {
+                    trend = ARROWS.down
+                }
 
-            const key = this.getKey(date);
-            const entry = this.cache.data[key] || {};
-            const value = parseFloat(entry?.data?.value || "0");
-            let trend = "";
-            if (value > lastDay) {
-                trend = ARROWS.up
-            } else if (value < lastDay) {
-                trend = ARROWS.down
-            }
-
-            let message = `${DAYS[date.getDay()]}: ${value} ${trend}`;
-            values.push(message);
-            lastDay = value;
-        }
-
+                let message = `${DAYS[date.getDay()]}: ${value} ${trend}`;
+                values.push(message);
+                lastDay = value;
+            });
         const trend = values.join("\n")
 
         const msg = [
             "The todays value was published: ",
-            `Mannheim is fresh für ${count} / ${THRESHOLD_DAYS} Tage`,
+            freshMessage,
             " ",
             "**Trend**",
             trend,

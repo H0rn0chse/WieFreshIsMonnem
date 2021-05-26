@@ -5,6 +5,7 @@ import { addDebug, removeDebug, sendDebug } from "./commands/debugChannel.js";
 import { DiscordManager } from "./DiscordManager.js";
 import { addAlert, removeAlert, sendAlert } from "./commands/alertChannel.js";
 import { addStat, removeStat, sendStats } from "./commands/alert.js";
+import { stop } from "./commands/stop.js";
 import { dirname } from "../globals.js";
 
 const configFile = path.join(dirname, "config.json");
@@ -23,12 +24,14 @@ class _CommandManager {
             remove: removeStat,
             addAlert,
             removeAlert,
+            stop,
         };
 
         this.invokeCommands = {
             sendDebug,
             sendAlert,
             sendStats,
+            stop,
         };
 
         // commands containing private informations
